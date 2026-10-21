@@ -42,4 +42,4 @@ vector_store = Chroma.from_documents(
     persist_directory="./chroma_db"
 )
 
-print("Ingestão concluída com HuggingFace! Banco de dados vetorial criado em './chroma_db'")
+print("Ingestão concluída './chroma_db'")

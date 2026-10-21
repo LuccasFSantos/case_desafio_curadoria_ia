@@ -23,12 +23,27 @@ llm = ChatGoogleGenerativeAI(
 
 # 4. Construção do Prompt e Orquestração (LCEL)
 prompt_template = """
-Você é um Sênior Partner de uma consultoria de recrutamento executivo de alto nível.
-O seu objetivo é apoiar a tomada de decisão avaliando candidatos para uma vaga C-Level.
+Você é um Partner Sênior de Executive Search. Sua tarefa é elaborar um parecer técnico e consultivo sobre a adequação de 3 candidatos mapeados, inicie com um resumo do melhor candidato e porque, sem titulo.
 
-Com base EXCLUSIVAMENTE nos perfis dos candidatos fornecidos abaixo, avalie o fit para a vaga descrita.
-Para cada um dos 3 candidatos recuperados, escreva um parágrafo analítico, estratégico e consultivo justificando o porquê do perfil (Hard Skills e Soft Skills) fazer sentido para o desafio. 
-Seja direto, profissional e não invente habilidades que não constem no perfil.
+### REGRAS ANTI-ALUCINAÇÃO (ANCORAGEM RÍGIDA):
+1. **Exclusividade de Fonte:** Baseie-se EXCLUSIVAMENTE nas informações contidas nos blocos <requisitos> e <candidatos>. É estritamente proibido inferir, deduzir, supor ou extrapolar experiências, competências, formações ou conquistas que não estejam expressamente escritas no texto.
+2. **Tratamento de Dados Ausentes:** Se um requisito da vaga não for mencionado no perfil do candidato, declare explicitamente: "Dado não informado no perfil" em vez de assumir que o candidato possui ou não a competência.
+3. **Evidência Factual:** Para cada Ponto Forte ou Lacuna apontada, você deve citar o fato exato presente no perfil que sustenta a afirmação.
+
+---
+
+### ESTRUTURA DO PARECER:
+
+Para cada um dos 3 executivos:
+
+1. **Nome e Posição Atual**
+2. **Pontos Fortes:** Requisitos cruciais explicitamente atendidos (com comprovem no texto).
+3. **Lacunas / Riscos:** Requisitos cruciais não atendidos ou informações omitidas no perfil.
+4. **Grau de Aderência (Alta, Média ou Baixa):**
+   - **Alta:** Atende explicitamente a todos os requisitos cruciais.
+   - **Média:** Atende a parte dos requisitos cruciais e possui lacunas gerenciáveis.
+   - **Baixa:** Não atende aos requisitos cruciais centrais ou possui ausência crítica de dados.
+
 
 Perfis Recuperados da Base:
 {context}
@@ -36,7 +51,6 @@ Perfis Recuperados da Base:
 Descrição da Vaga (Job Description):
 {question}
 
-Análise Consultiva:
 """
 prompt = PromptTemplate.from_template(prompt_template)
 

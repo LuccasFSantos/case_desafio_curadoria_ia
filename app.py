@@ -6,157 +6,208 @@ from google.genai import types
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-# Configuração da página e variáveis de ambiente
+# Configuração da página
 load_dotenv()
 st.set_page_config(
-    page_title="Executive Talent Matching | Intelligence System",
-    page_icon="👔",
+    page_title="Mapeamento Executivo de Talentos",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Estilização CSS personalizada para um design executivo e moderno
+# Estilização CSS adaptada para Tema Escuro Executivo (Slate / Dark)
 st.markdown("""
 <style>
-    .main-header {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-weight: 700;
-        color: #1E293B;
-        margin-bottom: 0px;
-    }
-    .sub-header {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #64748B;
-        font-size: 1.1rem;
-        margin-bottom: 25px;
-    }
-    .candidate-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .stButton>button {
+    /* Fundo escuro e tipografia geral */
+    .stApp {
         background-color: #0F172A;
+        color: #F8FAFC;
+    }
+    
+    .main-title {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        color: #F8FAFC;
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.25rem;
+    }
+    
+    .sub-title {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: #94A3B8;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Card executivo escuro com bordas e contraste suaves */
+    .executive-card {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 16px;
+        color: #F8FAFC;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Botão com destaque em azul corporativo */
+    .stButton>button {
+        background-color: #2563EB;
         color: #FFFFFF;
         font-weight: 600;
-        border-radius: 6px;
-        padding: 0.6rem 1.2rem;
-        border: none;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid #2563EB;
         width: 100%;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease-in-out;
     }
+    
     .stButton>button:hover {
-        background-color: #1E293B;
+        background-color: #1D4ED8;
+        border-color: #1D4ED8;
         color: #FFFFFF;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Entrada de texto e inputs em modo escuro */
+    .stTextArea textarea {
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background-color: #1E293B;
+        color: #F8FAFC;
+    }
+
+    .stTextArea textarea:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 1px #3B82F6;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Cache de carregamento do Banco Vetorial
 @st.cache_resource
-def carregar_vector_store():
+def carregar_retriever():
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vector_store = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
     return vector_store.as_retriever(search_kwargs={"k": 3})
 
-# Função para executar a geração via SDK oficial google-genai
-def gerar_analise_curadoria(contexto: str, job_description: str) -> str:
+def elaborar_parecer_executivo(contexto: str, job_description: str) -> str:
     client = genai.Client()
     
-    prompt_sistema = """
-Você é um Sênior Partner de uma consultoria de recrutamento executivo de alto nível (partnership horizontal).
-Seu objetivo é gerar uma análise consultiva, estratégica e altamente analítica avaliando os candidatos para a vaga informada.
+    prompt_consultivo = """
+Você é um Partner Sênior de Executive Search. Sua tarefa é elaborar um parecer técnico e consultivo sobre a adequação de 3 candidatos mapeados, inicie com um resumo do melhor candidato e porque, sem titulo.
 
-INSTRUÇÕES E DIRETRIZES:
-1. Avalie rigorosamente os candidatos recuperados da base contra o Job Description.
-2. Para cada um dos 3 candidatos, apresente:
-   - Nome e Perfil Atual
-   - Análise Estratégica (Hard Skills & Soft Skills aplicadas ao desafio da vaga)
-   - Veredicto de Fit (Alto, Médio ou Baixo)
-3. Não invente ou extrapole habilidades que não constem estritamente nos perfis fornecidos.
-4. Utilize tom estritamente executivo e consultivo.
+### REGRAS ANTI-ALUCINAÇÃO (ANCORAGEM RÍGIDA):
+1. **Exclusividade de Fonte:** Baseie-se EXCLUSIVAMENTE nas informações contidas nos blocos <requisitos> e <candidatos>. É estritamente proibido inferir, deduzir, supor ou extrapolar experiências, competências, formações ou conquistas que não estejam expressamente escritas no texto.
+2. **Tratamento de Dados Ausentes:** Se um requisito da vaga não for mencionado no perfil do candidato, declare explicitamente: "Dado não informado no perfil" em vez de assumir que o candidato possui ou não a competência.
+3. **Evidência Factual:** Para cada Ponto Forte ou Lacuna apontada, você deve citar o fato exato presente no perfil que sustenta a afirmação.
+
+---
+
+### ESTRUTURA DO PARECER:
+
+Para cada um dos 3 executivos:
+
+1. **Nome e Posição Atual**
+2. **Pontos Fortes:** Requisitos cruciais explicitamente atendidos (com comprovem no texto).
+3. **Lacunas / Riscos:** Requisitos cruciais não atendidos ou informações omitidas no perfil.
+4. **Grau de Aderência (Alta, Média ou Baixa):**
+   - **Alta:** Atende explicitamente a todos os requisitos cruciais.
+   - **Média:** Atende a parte dos requisitos cruciais e possui lacunas gerenciáveis.
+   - **Baixa:** Não atende aos requisitos cruciais centrais ou possui ausência crítica de dados.
+
+Perfis Recuperados da Base:
+{context}
+
+Descrição da Vaga (Job Description):
+{question}
+
 """
-    
-    conteudo_prompt = f"""
-{prompt_sistema}
 
-PERFIS RECUPERADOS DA BASE DE TALENTOS:
+    conteudo = f"""
+{prompt_consultivo}
+
+EXECUTIVOS MAPEADOS NA BASE:
 {contexto}
 
-JOB DESCRIPTION (DESCRITIVO DA VAGA):
+DESAFIO DA POSIÇÃO (JOB DESCRIPTION):
 {job_description}
 
-ANÁLISE CONSULTIVA EXECUTIVA:
+PARECER TÉCNICO DE ADERÊNCIA:
 """
-    
+
     config = types.GenerateContentConfig(
         temperature=0.0,
         top_p=0.95,
     )
-    
+
     response = client.models.generate_content(
         model="gemini-3.8-flash",
-        contents=conteudo_prompt,
+        contents=conteudo,
         config=config
     )
     return response.text
 
-# Interface do Usuário (Streamlit)
-st.markdown("<h1 class='main-header'>👔 Executive Talent Matchmaking</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-header'>Curadoria preditiva de altos executivos baseada em RAG semântico e LLM</p>", unsafe_allow_html=True)
+# Cabeçalho
+st.markdown('<div class="main-title">Mapeamento Executivo de Talentos</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Painel de Avaliação Consultiva e Análise de Compatibilidade</div>', unsafe_allow_html=True)
 
-# Sidebar para seleção de casos de teste
-st.sidebar.header("📋 Casos de Teste Rápidos")
+# Sidebar
+st.sidebar.title("Atalhos")
+st.sidebar.markdown("Selecione um perfil:")
+
 opcao_vaga = st.sidebar.selectbox(
-    "Escolha uma vaga pré-configurada:",
-    ["Personalizado", "Vaga 1: Tech Lead / CTO (IA & Dados)", "Vaga 2: CFO (Reestruturação & M&A)"]
+    "Job Descriptions para Teste:",
+    ["Personalizado", "Tech Lead / CTO (Escala & Dados)", "CFO (Reestruturação & M&A)"]
 )
 
-vaga_1_txt = "Startup B2B de rápido crescimento busca CTO com forte viés em IA e dados. Necessário perfil hands-on para escalar o time técnico e construir arquitetura escalável do zero. Ambiente dinâmico, exige alta adaptabilidade e inovação."
-vaga_2_txt = "Empresa de tecnologia em fase de alto crescimento busca CFO para liderar próxima rodada de captação institucional e preparar a empresa para futuro M&A. Exige experiência prévia com startups em estágios avançados e relacionamento com fundos de VC."
+vaga_1_txt = "Startup B2B em fase de expansão busca CTO com atuação em arquitetura de dados e inteligência computacional. Perfil hands-on para estruturação de time técnico do zero e garantia de escalabilidade das soluções."
+vaga_2_txt = "Empresa de tecnologia busca CFO para liderar captação de recursos institucionais e conduzir processo de M&A. Exige histórico em gestão financeira de empresas de alto crescimento e relacionamento com fundos de capital de risco."
 
-if opcao_vaga == "Vaga 1: Tech Lead / CTO (IA & Dados)":
-    jd_default = vaga_1_txt
-elif opcao_vaga == "Vaga 2: CFO (Reestruturação & M&A)":
-    jd_default = vaga_2_txt
+if opcao_vaga == "Tech Lead / CTO (Escala & Dados)":
+    jd_padrao = vaga_1_txt
+elif opcao_vaga == "CFO (Reestruturação & M&A)":
+    jd_padrao = vaga_2_txt
 else:
-    jd_default = ""
+    jd_padrao = ""
 
-col1, col2 = st.columns([1, 1], gap="large")
+# Colunas de Entrada e Saída
+col_input, col_output = st.columns([1, 1], gap="large")
 
-with col1:
-    st.subheader("📄 Job Description (JD)")
+with col_input:
+    st.subheader("Desafio da Posição")
     jd_input = st.text_area(
-        "Insira a descrição completa da posição executiva:",
-        value=jd_default,
-        height=280,
-        placeholder="Cole aqui o perfil desejado da vaga..."
+        "Descreva os requisitos e contexto da vaga:",
+        value=jd_padrao,
+        height=300,
+        placeholder="Cole o perfil da vaga aqui..."
     )
-    btn_executar = st.button("🔍 Executar Matchmaking Executivo")
+    # Botão com ícone de lupa
+    btn_mapear = st.button("🔍 Buscar Executivos")
 
-with col2:
-    st.subheader("📊 Relatório de Curadoria Executiva")
-    if btn_executar:
+with col_output:
+    st.subheader("Resultado do Mapeamento")
+    
+    if btn_mapear:
         if not jd_input.strip():
-            st.warning("Por favor, insira uma descrição de vaga válida.")
+            st.warning("Insira o descritivo da posição para realizar a busca.")
         else:
-            with st.spinner("Realizando busca semântica no vector store e gerando análise consultiva..."):
+            with st.spinner("Consultando base de talentos e gerando parecer..."):
                 try:
-                    retriever = carregar_vector_store()
+                    retriever = carregar_retriever()
                     docs_recuperados = retriever.invoke(jd_input)
                     
                     contexto_txt = "\n\n".join([
-                        f"Candidato: {doc.metadata.get('nome', 'N/A')}\nPerfil: {doc.page_content}"
+                        f"Nome: {doc.metadata.get('nome', 'Não informado')}\nPerfil Profissional: {doc.page_content}"
                         for doc in docs_recuperados
                     ])
                     
-                    resultado = gerar_analise_curadoria(contexto_txt, jd_input)
+                    relatorio = elaborar_parecer_executivo(contexto_txt, jd_input)
                     
-                    st.markdown(resultado)
+                    st.markdown(f'<div class="executive-card">{relatorio}</div>', unsafe_allow_html=True)
                     
                 except Exception as e:
-                    st.error(f"Erro durante o processamento da curadoria: {e}")
+                    st.error(f"Erro ao processar mapeamento: {e}")
     else:
-        st.info("Insira a vaga e clique no botão para visualizar o Top 3 candidatos e parecer consultivo.") 
+        st.info("Insira a vaga ao lado e clique em **🔍 Buscar Executivos** para visualizar os resultados.")

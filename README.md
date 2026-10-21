@@ -38,3 +38,66 @@ Sistema Inteligente End-to-End desenvolvido para curadoria preditiva de talentos
 git clone [https://github.com/LuccasFSantos/desafio_curadoria_ia.git](https://github.com/LuccasFSantos/desafio_curadoria_ia.git)
 cd desafio_curadoria_ia
 python -m venv venv
+
+### 2. Ativação do Virtualenv
+
+- **Windows:**
+  ```cmd
+  venv\Scripts\activate
+  ```
+- **Linux/Mac:**
+  ```bash
+  source venv/bin/activate
+  ```
+
+---
+
+### 3. Instalar Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 4. Configurar Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
+
+```env
+GEMINI_API_KEY="COLE_SUA_CHAVE_API_AQUI"
+```
+
+---
+
+### 5. Ingestão da Base Vetorial de Candidatos
+
+Execute o pipeline para povoar o banco vetorial local (ChromaDB) com os mini-currículos:
+
+```bash
+python ingestao_dados.py
+```
+
+---
+
+### 6. Inicializar a Aplicação Web
+
+Inicie o servidor local do Streamlit:
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## 🧪 Validação dos Casos de Teste (Matchmaking)
+
+A aplicação inclui botões de testes rápidos na *sidebar* para os dois cenários do desafio:
+
+1. **Vaga 1 (Tech Lead / CTO - IA & Dados):**
+   - **Resultado Esperado:** Indicação prioritária da **Candidata C (Carolina Mendes)**.
+   - **Fundamentação:** Experiência prévia como CTO em startup, perfil *hands-on*, conhecimento em Python, forte histórico em IA/Dados e alta adaptabilidade a ambientes dinâmicos.
+
+2. **Vaga 2 (CFO - Reestruturação & Captação):**
+   - **Resultado Esperado:** Indicação prioritária da **Candidata A (Ana Silva)**.
+   - **Fundamentação:** Ex-CFO de fintech unicórnio, histórico comprovado em M&A, reestruturação financeira e rodadas avançadas de captação (Series B e C).
