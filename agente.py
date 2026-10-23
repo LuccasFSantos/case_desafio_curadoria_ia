@@ -17,7 +17,7 @@ retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
 # 3. Configuração do LLM (LangChain Wrapper)
 llm = ChatGoogleGenerativeAI(
-    model="gemini-3.8-flash",
+    model="gemini-3.5-flash-lite",
     temperature=0
 )
 
